@@ -3,7 +3,7 @@ export function otpEmailHTML(otp: string, email: string, validitySeconds = 300) 
   <html>
     <body style="font-family: Arial, sans-serif; background:#f9fafb; padding:20px;">
       <div style="max-width:500px; margin:auto; background:white; padding:30px; border-radius:10px; box-shadow:0 2px 8px rgba(0,0,0,0.1);">
-        <h2 style="color:#1f2937; text-align:center;">🔐 Your 1ai Login Code</h2>
+        <h2 style="color:#1f2937; text-align:center;">🔐 Your  Login Code</h2>
         <p>Hello,</p>
         <p>Use the code below to sign in as <b>${escapeHTML(email)}</b>:</p>
         <div style="text-align:center; margin:20px 0;">
