@@ -6,14 +6,26 @@ import rateLimit from "express-rate-limit";
  * - Helps prevent OTP spamming and brute-force attacks.
  */
 
-const otpLimiter = rateLimit({
+
+export const OtpLimit = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 5,
   standardHeaders: true,
   legacyHeaders: false,
   ipv6Subnet: 56,
-  message: "Too many OTP requests from this IP, please try again after 15 minutes"
-  
-})
+  message: { message: "Too many OTP requests from this IP, please try again after 15 minutes" }
 
-export default otpLimiter;
+});
+
+
+export const HourLimitRelaxedBaby = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  limit: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  ipv6Subnet: 56,
+  message: { message: "Too many OTP requests from this IP, please try again after 15 minutes" }
+
+});
+
+

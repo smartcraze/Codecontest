@@ -4,7 +4,8 @@ import jwt from "jsonwebtoken";
 import { userSchema,  SigninSchema } from "@repo/zodtypes";
 import { TOTP } from "totp-generator";
 import base32 from "hi-base32";
-import otpLimiter from "../middleware/otp-rate-limitter";
+import {OtpLimit} from "../middleware/otp-rate-limitter";
+import { sendOtpEmail } from "../utils/email";
 
 const router = Router();
 
@@ -36,7 +37,9 @@ router.post("/signup", async (req, res) => {
 
     console.log(`OTP for ${email}: ${otp}`); 
     
-    // TODO: replace with actual email service
+
+    sendOtpEmail(email, parseInt(otp, 10));
+    
 
     res.status(200).json({
       message: "OTP sent to your email",
@@ -50,7 +53,7 @@ router.post("/signup", async (req, res) => {
 
 
 
-router.post("/signin", otpLimiter, async (req, res) => {
+router.post("/signin", OtpLimit, async (req, res) => {
   try {
     const { success, data, error } = SigninSchema.safeParse(req.body);
     if (!success) {

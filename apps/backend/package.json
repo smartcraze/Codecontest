@@ -14,6 +14,7 @@
     "@repo/zodtypes": "*",
     "@types/express": "^5.0.3",
     "express": "^5.1.0",
-    "hi-base32": "^0.5.1"
+    "hi-base32": "^0.5.1",
+    "resend": "^6.0.2"
   }
 }
