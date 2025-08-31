@@ -1,133 +1,91 @@
 import { Router } from "express";
-import prisma from "@repo/db";
-import bcrypt from "bcrypt";
+import prisma, { Role } from "@repo/db";
 import jwt from "jsonwebtoken";
-import { userSchema } from "@repo/zodtypes";
-import { Role } from "@repo/db";
+import { userSchema,  SigninSchema } from "@repo/zodtypes";
 import { TOTP } from "totp-generator";
-import { otpSchema } from "@repo/zodtypes";
-import otpLimiter from "../middleware/otp-rate-limitter";
 import base32 from "hi-base32";
+import otpLimiter from "../middleware/otp-rate-limitter";
 
 const router = Router();
 
-
 const otpCache = new Map<string, string>();
 
-router.post("/signup", async(req, res) => {
-    try {
-        const {success, data, error} = userSchema.safeParse(req.body);
-        if(!success) {
-            res.status(400).json({error: error.message});
-            return;
-        }
-        const {email, password} = data;
-
-        const existingUser = await prisma.user.findUnique({
-            where: { email }
-        });
-        if (existingUser) {
-            res.status(400).json({ error: "User already exists" });
-            return;
-        }
-
-        const hashedPassword = await bcrypt.hash(password, 10);
-        
-        const user = await prisma.user.create({
-            data: {
-                email,
-                password: hashedPassword,
-                role: Role.User
-            }
-        });
-
-        res.status(201).json({
-            message: "User created",
-            user: {
-                id: user.id,
-                email: user.email,
-                role: user.role
-            }
-        });
-
-    } catch (error) {
-        if (error instanceof Error) {
-            res.status(500).json({ error: error.message });
-        } else {
-            res.status(500).json({ error: "An unknown occured while creating user" });
-        }
+router.post("/signup", async (req, res) => {
+  try {
+    const { success, data, error } = userSchema.safeParse(req.body);
+    if (!success) {
+      res.status(400).json({ error: error.message });
+      return;
     }
-})
+    const { email } = data;
 
-
-
-
-router.post("/signin", async(req, res) => {
-    try {
-        const {success, data, error} = userSchema.safeParse(req.body);
-        if(!success) {
-            res.status(400).json({error: error.message});
-            return;
-        }
-        const {email, password} = data;
-        // check if user exists
-        const user = await prisma.user.findUnique({
-            where: { email }
-        });
-        if (!user) {
-            res.status(400).json({ error: "Invalid email or password" });
-            return;
-        }
-        const passwordMatches = await bcrypt.compare(password, user.password);
-        if (!passwordMatches) {
-            res.status(400).json({ error: "Invalid email or password" });
-            return;
-        }
-
-        const token = jwt.sign(
-            { userId: user.id, email: user.email, role: user.role },
-            process.env.JWT_SECRET || "supersecret",
-            { expiresIn: "7d" }
-        );
-
-
-        const { otp, expires } = TOTP.generate(base32.encode(data.email + process.env.JWT_SECRET!))
-
-        console.log(otp)
-
-        res.status(200).json({
-            message: "Authentication successful",
-            token,
-            otp,
-            expires
-        });
-        
-    } catch (error) {
-        if (error instanceof Error) {
-            res.status(500).json({ error: error.message });
-        } else {
-            res.status(500).json({ error: "An unknown error occured while signing in" });
-        }  
-          
+    let user = await prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      user = await prisma.user.create({
+        data: {
+          email,
+          role: Role.User,
+        },
+      });
     }
-})
+
+    const { otp } = TOTP.generate(base32.encode(email + process.env.JWT_SECRET!));
+
+    otpCache.set(email, otp);
 
 
-router.post("/verify-otp",otpLimiter, async(req, res) => {
-    try {
-        const {success, data, error} = otpSchema.safeParse(req.body);
-        if(!success) {
-            res.status(400).json({error: error.message});
-            return;
-        }
-        const {otp} = data;
+    console.log(`OTP for ${email}: ${otp}`); 
+    
+    // TODO: replace with actual email service
 
-    } catch (error) {
-        
-    }    
-})
+    res.status(200).json({
+      message: "OTP sent to your email",
+    });
+  } catch (error) {
+    res.status(500).json({
+      error: error instanceof Error ? error.message : "Unknown error during signup",
+    });
+  }
+});
 
 
 
+router.post("/signin", otpLimiter, async (req, res) => {
+  try {
+    const { success, data, error } = SigninSchema.safeParse(req.body);
+    if (!success) {
+      res.status(400).json({ error: error.message });
+      return;
+    }
+    const { email, otp } = data;
+
+    const storedOtp = otpCache.get(email);
+
+    const cachedOtp = storedOtp ? parseInt(storedOtp, 10) : undefined;
+
+    if (!cachedOtp || cachedOtp !== otp) {
+      res.status(400).json({ error: "Invalid or expired OTP" });
+      return;
+    }
+
+    otpCache.delete(email);
+
+    const token = jwt.sign(
+      { email },
+      process.env.JWT_SECRET || "supersecret",
+      { expiresIn: "7d" }
+    );
+
+    res.status(200).json({
+      message: "Authentication successful",
+      token,
+    });
+    
+  } catch (error) {
+    res.status(500).json({
+      error: error instanceof Error ? error.message : "Unknown error during signin",
+    });
+  }
+});
 
 export default router;
