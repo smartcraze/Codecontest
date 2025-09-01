@@ -14,7 +14,12 @@ npx create-turbo@latest
 
 This Turborepo includes the following packages/apps:
 
-### Apps and Packages
+
+## schema
+
+![schema]("/image.png")
+
+### Apps and Packages   
 
 - `docs`: a [Next.js](https://nextjs.org/) app
 - `web`: another [Next.js](https://nextjs.org/) app
