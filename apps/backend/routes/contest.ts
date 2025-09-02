@@ -1,8 +1,8 @@
 import prisma from "@repo/db";
 import { ChallengeIdSchema, ContestIdSchema, PaginationSchema } from "@repo/zodtypes";
 import { Router } from "express";
-import { z } from "zod";
 import { SubmissionHourLimitRelaxedBaby } from "../middleware/submission-rate-limit";
+import  { Redisclient } from "../utils/redis";
 
 const router = Router();
 
@@ -184,31 +184,103 @@ zadd contest:<contestId> <score> <userId>
 zrevrange contest:<contestId> 0 99 withscores
 */
 
-router.get("/leaderboard/:contestId", (req, res) => {
+router.get("/leaderboard/:contestId", async (req, res) => {
     try {
         const { success, data } = ContestIdSchema.safeParse(req.params);
-        if (!success) {
-            res.status(400).json({ error: "Invalid contest ID" });
-            return;
-        }
+
+        if (!success) return res.status(400).json({ error: "Invalid contest ID" });
+
         const { contestId } = data;
-        // fetch from redis
-        // const leaderboard = await redis.zrevrange(`contest:${contestId}`, 0, 99, 'WITHSCORES');
-        res.json({ leaderboard: [] });
+
+        const leaderboard = await Redisclient.zRangeWithScores(
+            `contest:${contestId}`,
+            0,
+            99,
+            { REV: true }
+        );
 
 
-    } catch (error) {
-
+        res.json({ leaderboard });
+    } catch (err) {
+        res.status(500).json({ error: "Server error" });
     }
+});
 
 
-})
+function encodeScore(points: number, timeTaken: number): number {
+  return points * 1_000_000 - timeTaken;
+}
 
-router.post("/submit/:challengeId", SubmissionHourLimitRelaxedBaby, (req, res) => {
-    // have rate limitting
-    // max 20 submissions per problem
-    // forward the request to GPT
-    // store the response in sorted set and the DB
-})
+router.post(
+  "/submit/:challengeId",
+  SubmissionHourLimitRelaxedBaby,
+  async (req, res) => {
+    try {
+      const { challengeId } = req.params;
+      const { userId, contestId, submission, points, timeTaken } = req.body;
+
+      if (!userId || !contestId || !submission || !points || !timeTaken) {
+        res.status(400).json({ error: "Missing required fields" });
+        return;
+      }
+
+      const subKey = `submissions:${contestId}:${challengeId}:${userId}`;
+      const count = await Redisclient.incr(subKey);
+      if (count === 1) {
+        await Redisclient.expire(subKey, 24 * 60 * 60);
+      }
+      if (count > 20) {
+        return res.status(429).json({ error: "Submission limit reached" });
+      }
+
+      // --- Check ContestToChallengeMapping ---
+      const mapping = await prisma.contestToChallengeMapping.findUnique({
+        where: { contestId_challengeId: { contestId, challengeId } },
+      });
+      if (!mapping) {
+        res.status(404).json({ error: "Invalid contest/challenge mapping" });
+        return;
+      }
+
+      // --- Save submission in DB ---
+      const newSubmission = await prisma.submission.create({
+        data: {
+          submission,
+          userId,
+          points,
+          contestToChallengeMappingId: mapping.id,
+        },
+      });
+
+      // --- Update Redis leaderboard ---
+      const encodedScore = encodeScore(points, timeTaken);
+      await Redisclient.zAdd(`contest:${contestId}`, {
+        score: encodedScore,
+        value: userId,
+      });
+
+      // --- Optional: update relational Leaderboard table ---
+      // First, get current rank from Redis
+      const rank = await Redisclient.zRevRank(`contest:${contestId}`, userId);
+      if (rank !== null) {
+        await prisma.leaderboard.upsert({
+          where: {
+            contestId_rank: { contestId, rank: rank + 1 }, // Redis rank is 0-indexed
+          },
+          update: { userId },
+          create: { contestId, userId, rank: rank + 1 },
+        });
+      }
+
+      return res.json({
+        message: "Submission recorded",
+        submission: newSubmission,
+      });
+    } catch (err) {
+      console.error(err);
+      return res.status(500).json({ error: "Server error" });
+    }
+  }
+);
 
 export default router;
