@@ -1,12 +1,17 @@
 import express from 'express';
 import authroutes from "./routes/user";
 import contestRoute from "./routes/contest";
+import adminRoutes from "./routes/admin";
 
 const app = express();
 app.use(express.json());
+
+
+
 app.use('/api/auth', authroutes);
 app.use('/api/contest', contestRoute)
-// .use(express.urlencoded({ extended: true })); 
+app.use("/api/admin", adminRoutes);
+
 
 
 const PORT = process.env.PORT || 3000;
