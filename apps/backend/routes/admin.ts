@@ -15,47 +15,47 @@ const otpCache = new Map<string, string>();
 
 
 router.post("/signup", async (req, res) => {
-    try {
-        const { success, data } = userSchema.safeParse(req.body);
+  try {
+    const { success, data } = userSchema.safeParse(req.body);
 
-        if (!success) {
-            res.status(400).json({ error: "Invalid request" });
-            return;
-        }
-
-        const { email } = data;
-
-        let user = await prisma.user.findUnique({ where: { email } });
-
-        if (!user) {
-            user = await prisma.user.create({
-                data: {
-                    email,
-                    role: Role.Admin,
-                }
-            });
-        }
-
-
-        const { otp } = TOTP.generate(base32.encode(email + process.env.JWT_SECRET!));
-
-        otpCache.set(email, otp);
-
-        console.log(`OTP for ${email}: ${otp}`);
-
-
-        sendOtpEmail(email, parseInt(otp, 10));
-
-
-        res.status(200).json({
-            message: "OTP sent to your email",
-        });
-
-    } catch (error) {
-        res.status(500).json({
-            error: error instanceof Error ? error.message : "Unknown error during signup",
-        });
+    if (!success) {
+      res.status(400).json({ error: "Invalid request" });
+      return;
     }
+
+    const { email } = data;
+
+    let user = await prisma.user.findUnique({ where: { email } });
+
+    if (!user) {
+      user = await prisma.user.create({
+        data: {
+          email,
+          role: Role.Admin,
+        }
+      });
+    }
+
+
+    const { otp } = TOTP.generate(base32.encode(email + process.env.JWT_SECRET!));
+
+    otpCache.set(email, otp);
+
+    console.log(`OTP for ${email}: ${otp}`);
+
+
+    sendOtpEmail(email, parseInt(otp, 10));
+
+
+    res.status(200).json({
+      message: "OTP sent to your email",
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      error: error instanceof Error ? error.message : "Unknown error during signup",
+    });
+  }
 })
 
 
@@ -80,7 +80,7 @@ router.post("/signin", OtpLimit, async (req, res) => {
     otpCache.delete(email);
 
     const token = jwt.sign(
-      { email },
+      { email, role: Role.Admin },
       process.env.ADMIN_JWT_SECRET || "supersecret",
       { expiresIn: "7d" }
     );
@@ -89,7 +89,7 @@ router.post("/signin", OtpLimit, async (req, res) => {
       message: "Authentication successful",
       token,
     });
-    
+
   } catch (error) {
     res.status(500).json({
       error: error instanceof Error ? error.message : "Unknown error during signin",

@@ -1,10 +1,10 @@
 import { Router } from "express";
 import prisma, { Role } from "@repo/db";
 import jwt from "jsonwebtoken";
-import { userSchema,  SigninSchema } from "@repo/zodtypes";
+import { userSchema, SigninSchema } from "@repo/zodtypes";
 import { TOTP } from "totp-generator";
 import base32 from "hi-base32";
-import {OtpLimit} from "../middleware/otp-rate-limitter";
+import { OtpLimit } from "../middleware/otp-rate-limitter";
 import { sendOtpEmail } from "../utils/email";
 
 const router = Router();
@@ -35,11 +35,11 @@ router.post("/signup", async (req, res) => {
     otpCache.set(email, otp);
 
 
-    console.log(`OTP for ${email}: ${otp}`); 
-    
+    console.log(`OTP for ${email}: ${otp}`);
+
 
     sendOtpEmail(email, parseInt(otp, 10));
-    
+
 
     res.status(200).json({
       message: "OTP sent to your email",
@@ -73,9 +73,11 @@ router.post("/signin", OtpLimit, async (req, res) => {
 
     otpCache.delete(email);
 
-    const token = jwt.sign(
-      { email },
-      process.env.JWT_SECRET || "supersecret",
+    const token = jwt.sign({
+      email,
+      role: Role.User,
+    },
+      process.env.USER_JWT_SECRET || "default_secret",
       { expiresIn: "7d" }
     );
 
@@ -83,7 +85,7 @@ router.post("/signin", OtpLimit, async (req, res) => {
       message: "Authentication successful",
       token,
     });
-    
+
   } catch (error) {
     res.status(500).json({
       error: error instanceof Error ? error.message : "Unknown error during signin",
