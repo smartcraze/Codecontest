@@ -42,16 +42,13 @@ model ContestToChallengeMapping {
   @@unique([contestId, challengeId])
 }
 
-enum Difficulty {
-  Easy
-  Medium
-  Hard
-}
 
 model Challenge {
   id                        String                      @id @default(uuid())
   title                     String
-  notionDocId               String
+  notionDocId               String  @unique         
+  contentMd                 String
+  lastSyncedAt              DateTime?    
   maxPoints                 Int
   difficulty                Difficulty
   contestToChallengeMapping ContestToChallengeMapping[]
@@ -77,4 +74,10 @@ model Leaderboard {
   user      User    @relation(fields: [userId], references: [id])
 
   @@unique([contestId, rank])
+}
+
+enum Difficulty {
+  Easy
+  Medium
+  Hard
 }

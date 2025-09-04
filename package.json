@@ -1,5 +1,5 @@
 {
-  "name": "code-execution-engine",
+  "name": "code-contest",
   "private": true,
   "scripts": {
     "build": "turbo run build",
@@ -22,12 +22,14 @@
     "packages/*"
   ],
   "dependencies": {
+    "@notionhq/client": "^5.0.0",
     "@types/bcrypt": "^6.0.0",
     "@types/jsonwebtoken": "^9.0.10",
     "bcrypt": "^6.0.0",
     "express-rate-limit": "^8.0.1",
     "ioredis": "^5.7.0",
     "jsonwebtoken": "^9.0.2",
+    "notion-to-md": "^3.1.9",
     "redis": "^5.8.2",
     "totp-generator": "^1.0.0"
   }

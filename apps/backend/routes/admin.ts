@@ -1,6 +1,6 @@
 import { Router } from "express";
 import prisma, { Role } from "@repo/db";
-import { SigninSchema, userSchema } from "@repo/zodtypes";
+import { challengeSchema, SigninSchema, userSchema } from "@repo/zodtypes";
 import { TOTP } from "totp-generator";
 import base32 from "hi-base32";
 import { sendOtpEmail } from "../utils/email";
@@ -96,5 +96,70 @@ router.post("/signin", OtpLimit, async (req, res) => {
     });
   }
 });
+
+
+
+// post probelm to add a new problem
+router.post("/add-problem", async (req, res) => {
+  try {
+    const {success, data, error} = challengeSchema.safeParse(req.body);
+    if(!success){
+      res.status(400).json({error: error.message});
+      return;
+    }
+    const {title, notionDocId, maxPoints, difficulty, contentMd, lastSyncedAt} = data;
+    const newChallenge = await prisma.challenge.create({
+      data: {
+        title,
+        notionDocId,
+        maxPoints,
+        difficulty,
+        contentMd,
+        lastSyncedAt
+      }
+    });
+    res.status(201).json({message: "Problem added successfully", challenge: newChallenge});
+  } catch (error) {
+    res.status(500).json({
+      error: error instanceof Error ? error.message : "Unknown error while adding problem"
+    });
+  }
+
+});
+
+
+router.patch("challenges/:id/sync", async (req, res) => {
+  try {
+    const challengeId = req.params.id;
+    const challenge = await prisma.challenge.findUnique({
+      where: {id: challengeId}
+    });
+    if(!challenge){
+      res.status(404).json({error: "Challenge not found"});
+      return;
+    }
+    // logic to fetch content from notion and update the challenge
+
+
+
+    
+    res.status(200).json({message: "Challenge synced successfully"});
+    
+  } catch (error) {
+    res.status(500).json({
+      error: error instanceof Error ? error.message : "Unknown error while syncing challenge"
+    })  
+    
+  }
+
+
+});
+
+// delete a problem
+router.delete("challenges/:id/sync", async (req, res) => {
+
+});
+
+
 
 export default router;
