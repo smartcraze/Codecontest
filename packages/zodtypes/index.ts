@@ -35,7 +35,11 @@ export const challengeSchema = z.object({
     notionDocId: z.string(),
     maxPoints: z.number().min(1).max(10),
     difficulty: z.enum(["Easy", "Medium", "Hard"]),
-    contentMd: z.string(),
+    contentMd: z.string().optional(),
     lastSyncedAt: z.date().optional()
 });
 
+
+export const idParamSchema = z.object({
+  id: z.uuid("Invalid challenge ID format"),
+});
