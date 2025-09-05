@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 export function authMiddleware(req: Request, res: Response, next: NextFunction) {
     try {
         const token = req.headers.authorization;
+        
         if (!token) {
             res.status(401).json({ message: 'Login please ! ' });
             return;

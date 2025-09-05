@@ -44,7 +44,7 @@ router.get("/active", async (req, res) => {
 
 })
 
-router.get("/finished", (req, res) => {
+router.get("/finished", async(req, res) => {
     try {
         const { success, data } = PaginationSchema.safeParse({ ...req.query });
         if (!success) {
@@ -52,7 +52,7 @@ router.get("/finished", (req, res) => {
             return;
         }
         let { offset, page } = data;
-        const contests = prisma.contest.findMany({
+        const contests = await prisma.contest.findMany({
             where: {
                 endTime: { lt: new Date() }
             },
@@ -123,7 +123,7 @@ router.get("/:contestId", async (req, res) => {
 
 
 // get the details of a particular challenge in a contest
-router.get("/:contestId/:challengeId", (req, res) => {
+router.get("/:contestId/:challengeId", async(req, res) => {
     try {
         const { success, data } = ChallengeIdSchema.safeParse(req.params);
         if (!success) {
@@ -133,7 +133,7 @@ router.get("/:contestId/:challengeId", (req, res) => {
         const { challengeId, contestId } = data;
 
         // check if the challenge is part of the contest
-        const mapping = prisma.contestToChallengeMapping.findFirst({
+        const mapping = await prisma.contestToChallengeMapping.findFirst({
             where: {
                 challengeId,
                 contestId
@@ -143,7 +143,7 @@ router.get("/:contestId/:challengeId", (req, res) => {
             res.status(404).json({ error: "Challenge not found in the contest" });
             return;
         }
-        const challenge = prisma.challenge.findUnique({
+        const challenge = await prisma.challenge.findUnique({
             where: { id: challengeId },
             select: {
                 id: true,

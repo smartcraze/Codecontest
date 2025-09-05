@@ -56,11 +56,11 @@ model Challenge {
 
 model Submission {
   id                          String                    @id @default(uuid())
-  submission                  String
+  code                        String
   contestToChallengeMappingId String
   userId                      String
-  user                        User                      @relation(fields: [userId], references: [id])
   points                      Int
+  user                        User                      @relation(fields: [userId], references: [id])
   contestToChallengeMapping   ContestToChallengeMapping @relation(fields: [contestToChallengeMappingId], references: [id])
   createdAt                   DateTime                  @default(now())
 }
