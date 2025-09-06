@@ -1,41 +1,65 @@
-import { gemini, createAgent } from "@inngest/agent-kit";
-
-
-const model = gemini({ model: "gemini-1.5-flash" });
-
+import { createAgent, gemini } from "@inngest/agent-kit";
 
 /**
- * Code Evaluator Agent
- * - Takes code + test cases
- * - Simulates execution
- * - Returns structured JSON with results
+ * Type definitions for clarity and reuse
  */
+export type Submission = {
+  submissionId: string;
+  userId: string;
+  problem: string;
+  code: string;
+  language: string;
+  testCases: {
+    input: string;
+    expected: string;
+  }[];
+};
 
-export const codeEvaluatorAgent = createAgent({
-    model,
-    name: "Code Evaluator",
-    system: `
-You are a strict and reliable code evaluator.  
-You will be given:
-- A programming problem description
+export type EvaluationResult = {
+  results: {
+    input: string;
+    expected: string;
+    actual: string;
+    passed: boolean;
+  }[];
+  score: number;
+  feedback: string;
+};
+
+/**
+ * Code Evaluation Agent
+ */
+const evaluateCode = async (
+  submission: Submission
+): Promise<EvaluationResult | null> => {
+  const codeEvaluator = createAgent({
+    model: gemini({
+      model: "gemini-1.5-flash",
+      apiKey: process.env.GEMINI_API_KEY,
+    }),
+    name: "Code Evaluation Agent",
+    system: `You are a strict code evaluator.
+
+You will receive:
+- A problem description
 - A piece of code
 - A set of test cases
 
-Your job:
-1. Mentally run the code against the test cases.
+Your task:
+1. Mentally execute the code against the test cases.
 2. For each test case, return:
    - input
-   - expected output
-   - actual output (what the code would produce, even if wrong)
+   - expected
+   - actual
    - passed (true/false)
-3. If the code has errors, return the error message in "actual" and mark that test case as failed.
-4. Finally, assign a score strictly between **1 and 10**, where:
-   - 10 = all test cases passed perfectly
-   - 1 = complete failure or code does not run at all
-   - Any partial correctness must be reflected as an integer between 1–10
-5. Provide a short, clear feedback string.
+3. If the code fails, include the error in "actual" and mark as failed.
+4. Compute an integer score between 1 and 10 (10 = perfect, 1 = total failure).
+5. Add a short feedback string.
 
-Output ONLY valid JSON in this format:
+IMPORTANT:
+- Respond with only valid raw JSON.
+- No markdown, code fences, comments, or extra text.
+- The response must be a single JSON object with this format:
 
 {
   "results": [
@@ -47,8 +71,33 @@ Output ONLY valid JSON in this format:
     }
   ],
   "score": 7,
-  "feedback": "Your code works for most cases but fails on edge cases."
+  "feedback": "Your code works for some cases but fails on edge inputs."
 }
 `,
-tools: [],
-});
+  });
+
+  const response = await codeEvaluator.run(`
+Evaluate the following submission strictly as JSON.
+
+Problem:
+${submission.problem}
+
+Code:
+${submission.code}
+
+Test Cases:
+${JSON.stringify(submission.testCases, null, 2)}
+`);
+    // console.log("AI Response:", response.output[0]?.context);
+  const raw = response.output[0]?. || "";
+    console.log("response->",response);
+  try {
+    const jsonString = raw.trim();
+    return JSON.parse(jsonString) as EvaluationResult;
+  } catch (e) {
+    console.error("Failed to parse JSON from AI response: " + e.message);
+    return null;
+  }
+};
+
+export default evaluateCode;
