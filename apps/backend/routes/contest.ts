@@ -211,6 +211,7 @@ function encodeScore(points: number, timeTaken: number): number {
   return points * 1_000_000 - timeTaken;
 }
 
+
 router.post(
   "/submit/:challengeId",
   SubmissionHourLimitRelaxedBaby,
@@ -235,7 +236,7 @@ router.post(
 
       // --- Check ContestToChallengeMapping ---
       const mapping = await prisma.contestToChallengeMapping.findUnique({
-        where: { contestId_challengeId: { contestId, challengeId } },
+        where: { contestId_challengeId: { contestId, challengeId} },
       });
       if (!mapping) {
         res.status(404).json({ error: "Invalid contest/challenge mapping" });
