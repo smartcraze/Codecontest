@@ -1,8 +1,6 @@
 import { createAgent, gemini } from "@inngest/agent-kit";
 
-/**
- * Type definitions for clarity and reuse
- */
+
 export type Submission = {
   submissionId: string;
   userId: string;
@@ -29,7 +27,7 @@ export type EvaluationResult = {
 /**
  * Code Evaluation Agent
  */
-const evaluateCode = async (
+const GemniResponse = async (
   submission: Submission
 ): Promise<EvaluationResult | null> => {
   const codeEvaluator = createAgent({
@@ -89,11 +87,11 @@ Test Cases:
 ${JSON.stringify(submission.testCases, null, 2)}
 `);
 
-  
+
   // @ts-ignore
   const raw = response.output[0]?.content ?? "";
 
-  // Strip fences, backticks, and trim
+  
   const cleaned = raw
     .replace(/```json/i, "")
     .replace(/```/g, "")
@@ -107,4 +105,4 @@ ${JSON.stringify(submission.testCases, null, 2)}
   }
 };
 
-export default evaluateCode;
+export default GemniResponse;

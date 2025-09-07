@@ -42,27 +42,48 @@ model ContestToChallengeMapping {
   @@unique([contestId, challengeId])
 }
 
-
 model Challenge {
   id                        String                      @id @default(uuid())
   title                     String
-  notionDocId               String  @unique         
+  notionDocId               String                      @unique
   contentMd                 String
-  lastSyncedAt              DateTime?    
+  lastSyncedAt              DateTime?
   maxPoints                 Int
   difficulty                Difficulty
   contestToChallengeMapping ContestToChallengeMapping[]
 }
 
 model Submission {
-  id                          String                    @id @default(uuid())
+  id                          String           @id @default(uuid())
   code                        String
   contestToChallengeMappingId String
   userId                      String
-  points                      Int
-  user                        User                      @relation(fields: [userId], references: [id])
-  contestToChallengeMapping   ContestToChallengeMapping @relation(fields: [contestToChallengeMappingId], references: [id])
-  createdAt                   DateTime                  @default(now())
+  points                      Int              @default(0)
+  status                      SubmissionStatus @default(PENDING)
+  feedback                    String?
+  createdAt                   DateTime         @default(now())
+
+  user                      User                      @relation(fields: [userId], references: [id])
+  contestToChallengeMapping ContestToChallengeMapping @relation(fields: [contestToChallengeMappingId], references: [id])
+  evaluations               EvaluationResult[]
+
+  @@index([userId, contestToChallengeMappingId])
+}
+
+model EvaluationResult {
+  id           String     @id @default(uuid())
+  submissionId String
+  input        String
+  expected     String
+  actual       String
+  passed       Boolean
+  submission   Submission @relation(fields: [submissionId], references: [id])
+}
+
+enum SubmissionStatus {
+  PENDING
+  EVALUATED
+  FAILED
 }
 
 model Leaderboard {
