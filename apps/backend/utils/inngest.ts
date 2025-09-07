@@ -88,14 +88,21 @@ ${submission.code}
 Test Cases:
 ${JSON.stringify(submission.testCases, null, 2)}
 `);
-    // console.log("AI Response:", response.output[0]?.context);
-  const raw = response.output[0]?. || "";
-    console.log("response->",response);
+
+  
+  // @ts-ignore
+  const raw = response.output[0]?.content ?? "";
+
+  // Strip fences, backticks, and trim
+  const cleaned = raw
+    .replace(/```json/i, "")
+    .replace(/```/g, "")
+    .trim();
+
   try {
-    const jsonString = raw.trim();
-    return JSON.parse(jsonString) as EvaluationResult;
-  } catch (e) {
-    console.error("Failed to parse JSON from AI response: " + e.message);
+    return JSON.parse(cleaned) as EvaluationResult;
+  } catch (e: any) {
+    console.error("Failed to parse JSON:", e.message, "\nCleaned:\n", cleaned);
     return null;
   }
 };
