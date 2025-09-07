@@ -43,3 +43,17 @@ export const challengeSchema = z.object({
 export const idParamSchema = z.object({
   id: z.uuid("Invalid challenge ID format"),
 });
+
+
+
+export const SubmissionSchema = z.object({
+  params: z.object({
+    challengeId: z.uuid(),
+  }),
+  body: z.object({
+    contestId: z.uuid(),
+    userId: z.uuid(),
+    code: z.string().min(1, "Code cannot be empty"),
+    language: z.enum(["javascript", "typescript", "python", "cpp", "java"]),
+  }),
+});

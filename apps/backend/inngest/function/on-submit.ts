@@ -2,10 +2,10 @@ import GemniResponse from "../ai-code-evaluator";
 import { inngest } from "../client";
 import prisma from "@repo/db";
 
-export type Submission = {
+export type SubmissionPayload = {
   submissionId: string;
   userId: string;
-  problem: string;
+  problem: string; // challengeId or problem identifier
   code: string;
   language: string;
   testCases: {
@@ -14,7 +14,7 @@ export type Submission = {
   }[];
 };
 
-export type EvaluationResult = {
+export type EvaluationResultPayload = {
   results: {
     input: string;
     expected: string;
@@ -27,19 +27,36 @@ export type EvaluationResult = {
 
 async function saveEvaluationToDB(
   submissionId: string,
-  evaluation: EvaluationResult
+  evaluation: EvaluationResultPayload
 ) {
-  // Example stub:
-  // await db.submission.update({
-  //   where: { id: submissionId },
-  //   data: {
-  //     status: "evaluated",
-  //     score: evaluation.score,
-  //     feedback: evaluation.feedback,
-  //     results: JSON.stringify(evaluation.results),
-  //   },
-  // });
-  console.log(`Saving evaluation for ${submissionId}`, evaluation);
+  // update submission
+  await prisma.submission.update({
+    where: { id: submissionId },
+    data: {
+      status: "EVALUATED",
+      points: evaluation.score,
+      feedback: evaluation.feedback,
+      evaluations: {
+        create: evaluation.results.map((r) => ({
+          input: r.input,
+          expected: r.expected,
+          actual: r.actual,
+          passed: r.passed,
+        })),
+      },
+    },
+  });
+}
+
+async function markFailure(submissionId: string, errorMessage: string) {
+  await prisma.submission.update({
+    where: { id: submissionId },
+    data: {
+      status: "FAILED",
+      points: 0,
+      feedback: errorMessage,
+    },
+  });
 }
 
 export const EvaluateCodeFromAi = inngest.createFunction(
@@ -50,24 +67,29 @@ export const EvaluateCodeFromAi = inngest.createFunction(
   },
   { event: "submit/evaluate" },
   async ({ event, step }) => {
-    const submission: Submission = event.data;
+    const submission: SubmissionPayload = event.data;
 
     try {
+        
       // Run evaluation via AI agent
-      const evaluation: EvaluationResult = await step.run(
+
+      const evaluationResult = await step.run(
         "evaluate-code",
         async () => {
           return await GemniResponse(submission);
         }
       );
+      
+      if (!evaluationResult) {
+        throw new Error("Evaluation returned null result");
+      }
+      
+      const evaluation: EvaluationResultPayload = evaluationResult;
 
       // Persist result to DB
       await step.run("persist-result", async () => {
         await saveEvaluationToDB(submission.submissionId, evaluation);
       });
-
-      // Optional: small delay before finalizing
-      await step.sleep("wait-a-moment", "1s");
 
       return {
         status: "success",
@@ -77,13 +99,11 @@ export const EvaluateCodeFromAi = inngest.createFunction(
     } catch (error: any) {
       console.error("Evaluation failed:", error);
 
-      // Persist failure to DB
       await step.run("persist-failure", async () => {
-        await saveEvaluationToDB(submission.submissionId, {
-          results: [],
-          score: 0,
-          feedback: "Evaluation failed: " + error.message,
-        });
+        await markFailure(
+          submission.submissionId,
+          "Evaluation failed: " + error.message
+        );
       });
 
       return {

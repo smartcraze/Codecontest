@@ -58,6 +58,7 @@ model Submission {
   code                        String
   contestToChallengeMappingId String
   userId                      String
+  language                    String
   points                      Int              @default(0)
   status                      SubmissionStatus @default(PENDING)
   feedback                    String?
