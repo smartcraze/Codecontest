@@ -1,50 +1,40 @@
-import {z} from "zod";
-
+import { z } from 'zod'
 
 export const userSchema = z.object({
-    email: z.email()
-});
+  email: z.email(),
+})
 
-
-export const  SigninSchema = z.object({
-    email: z.email(),
-    otp: z.number().max(999999).min(100000)
-});
-
-
+export const SigninSchema = z.object({
+  email: z.email(),
+  otp: z.number().max(999999).min(100000),
+})
 
 export const PaginationSchema = z.object({
-    offset: z.string().optional(),
-    page: z.string().optional()
+  offset: z.string().optional(),
+  page: z.string().optional(),
 })
 
 export const ContestIdSchema = z.object({
-    contestId: z.uuid()
+  contestId: z.uuid(),
 })
 
-
 export const ChallengeIdSchema = z.object({
-    challengeId: z.uuid(),
-    contestId: z.uuid()
-});
-
-
+  challengeId: z.uuid(),
+  contestId: z.uuid(),
+})
 
 export const challengeSchema = z.object({
-    title: z.string().min(3).max(200),
-    notionDocId: z.string(),
-    maxPoints: z.number().min(1).max(10),
-    difficulty: z.enum(["Easy", "Medium", "Hard"]),
-    contentMd: z.string().optional(),
-    lastSyncedAt: z.date().optional()
-});
-
+  title: z.string().min(3).max(200),
+  notionDocId: z.string(),
+  maxPoints: z.number().min(1).max(10),
+  difficulty: z.enum(['Easy', 'Medium', 'Hard']),
+  contentMd: z.string().optional(),
+  lastSyncedAt: z.date().optional(),
+})
 
 export const idParamSchema = z.object({
-  id: z.uuid("Invalid challenge ID format"),
-});
-
-
+  id: z.uuid('Invalid challenge ID format'),
+})
 
 export const SubmissionSchema = z.object({
   params: z.object({
@@ -53,7 +43,7 @@ export const SubmissionSchema = z.object({
   body: z.object({
     contestId: z.uuid(),
     userId: z.uuid(),
-    code: z.string().min(1, "Code cannot be empty"),
-    language: z.enum(["javascript", "typescript", "python", "cpp", "java"]),
+    code: z.string().min(1, 'Code cannot be empty'),
+    language: z.enum(['javascript', 'typescript', 'python', 'cpp', 'java']),
   }),
-});
+})

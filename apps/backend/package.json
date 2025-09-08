@@ -6,7 +6,7 @@
   "scripts": {
     "start": "bun run index.ts",
     "dev": "bun run  index.ts",
-    "build":"bun build index.ts --outdir dist --target node18 --external:@repo/db --external:@repo/zodtypes"
+    "build": "bun build index.ts --outdir dist --target node18 --external:@repo/db --external:@repo/zodtypes"
   },
   "devDependencies": {
     "@types/bun": "latest"

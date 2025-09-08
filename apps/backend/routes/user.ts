@@ -1,96 +1,95 @@
-import { Router } from "express";
-import prisma, { Role } from "@repo/db";
-import jwt from "jsonwebtoken";
-import { userSchema, SigninSchema } from "@repo/zodtypes";
-import { TOTP } from "totp-generator";
-import base32 from "hi-base32";
-import { OtpLimit } from "../middleware/otp-rate-limitter";
-import { sendOtpEmail } from "../utils/email";
+import { Router } from 'express'
+import prisma, { Role } from '@repo/db'
+import jwt from 'jsonwebtoken'
+import { userSchema, SigninSchema } from '@repo/zodtypes'
+import { TOTP } from 'totp-generator'
+import base32 from 'hi-base32'
+import { OtpLimit } from '../middleware/otp-rate-limitter'
+import { sendOtpEmail } from '../utils/email'
 
-const router = Router();
+const router = Router()
 
-const otpCache = new Map<string, string>();
+const otpCache = new Map<string, string>()
 
-router.post("/signup", async (req, res) => {
+router.post('/signup', async (req, res) => {
   try {
-    const { success, data, error } = userSchema.safeParse(req.body);
+    const { success, data, error } = userSchema.safeParse(req.body)
     if (!success) {
-      res.status(400).json({ error: error.message });
-      return;
+      res.status(400).json({ error: error.message })
+      return
     }
-    const { email } = data;
+    const { email } = data
 
-    let user = await prisma.user.findUnique({ where: { email } });
+    let user = await prisma.user.findUnique({ where: { email } })
     if (!user) {
       user = await prisma.user.create({
         data: {
           email,
           role: Role.User,
         },
-      });
+      })
     }
 
-    const { otp } = TOTP.generate(base32.encode(email + process.env.JWT_SECRET!));
+    const { otp } = TOTP.generate(
+      base32.encode(email + process.env.JWT_SECRET!)
+    )
 
-    otpCache.set(email, otp);
+    otpCache.set(email, otp)
 
+    console.log(`OTP for ${email}: ${otp}`)
 
-    console.log(`OTP for ${email}: ${otp}`);
-
-
-    sendOtpEmail(email, parseInt(otp, 10));
-
+    sendOtpEmail(email, parseInt(otp, 10))
 
     res.status(200).json({
-      message: "OTP sent to your email",
-    });
+      message: 'OTP sent to your email',
+    })
   } catch (error) {
     res.status(500).json({
-      error: error instanceof Error ? error.message : "Unknown error during signup",
-    });
+      error:
+        error instanceof Error ? error.message : 'Unknown error during signup',
+    })
   }
-});
+})
 
-
-
-router.post("/signin", OtpLimit, async (req, res) => {
+router.post('/signin', OtpLimit, async (req, res) => {
   try {
-    const { success, data, error } = SigninSchema.safeParse(req.body);
+    const { success, data, error } = SigninSchema.safeParse(req.body)
     if (!success) {
-      res.status(400).json({ error: error.message });
-      return;
+      res.status(400).json({ error: error.message })
+      return
     }
-    const { email, otp } = data;
+    const { email, otp } = data
 
-    const storedOtp = otpCache.get(email);
+    const storedOtp = otpCache.get(email)
 
-    const cachedOtp = storedOtp ? parseInt(storedOtp, 10) : undefined;
+    const cachedOtp = storedOtp ? parseInt(storedOtp, 10) : undefined
 
     if (!cachedOtp || cachedOtp !== otp) {
-      res.status(400).json({ error: "Invalid or expired OTP" });
-      return;
+      res.status(400).json({ error: 'Invalid or expired OTP' })
+      return
     }
 
-    otpCache.delete(email);
+    otpCache.delete(email)
 
-    const token = jwt.sign({
-      email,
-      role: Role.User,
-    },
-      process.env.USER_JWT_SECRET || "default_secret",
-      { expiresIn: "7d" }
-    );
+    const token = jwt.sign(
+      {
+        email,
+        role: Role.User,
+      },
+      process.env.USER_JWT_SECRET || 'default_secret',
+      { expiresIn: '7d' }
+    )
 
     res.status(200).json({
-      message: "Authentication successful",
+      message: 'Authentication successful',
       token,
-    });
-
+    })
   } catch (error) {
     res.status(500).json({
-      error: error instanceof Error ? error.message : "Unknown error during signin",
-    });
+      error:
+        error instanceof Error ? error.message : 'Unknown error during signin',
+    })
   }
-});
+})
 
-export default router;
+export default router

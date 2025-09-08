@@ -1,29 +1,29 @@
-import GemniResponse from "../ai-code-evaluator";
-import { inngest } from "../client";
-import prisma from "@repo/db";
+import GemniResponse from '../ai-code-evaluator'
+import { inngest } from '../client'
+import prisma from '@repo/db'
 
 export type SubmissionPayload = {
-  submissionId: string;
-  userId: string;
-  problem: string; // challengeId or problem identifier
-  code: string;
-  language: string;
+  submissionId: string
+  userId: string
+  problem: string // challengeId or problem identifier
+  code: string
+  language: string
   testCases: {
-    input: string;
-    expected: string;
-  }[];
-};
+    input: string
+    expected: string
+  }[]
+}
 
 export type EvaluationResultPayload = {
   results: {
-    input: string;
-    expected: string;
-    actual: string;
-    passed: boolean;
-  }[];
-  score: number;
-  feedback: string;
-};
+    input: string
+    expected: string
+    actual: string
+    passed: boolean
+  }[]
+  score: number
+  feedback: string
+}
 
 async function saveEvaluationToDB(
   submissionId: string,
@@ -33,7 +33,7 @@ async function saveEvaluationToDB(
   await prisma.submission.update({
     where: { id: submissionId },
     data: {
-      status: "EVALUATED",
+      status: 'EVALUATED',
       points: evaluation.score,
       feedback: evaluation.feedback,
       evaluations: {
@@ -45,74 +45,68 @@ async function saveEvaluationToDB(
         })),
       },
     },
-  });
+  })
 }
 
 async function markFailure(submissionId: string, errorMessage: string) {
   await prisma.submission.update({
     where: { id: submissionId },
     data: {
-      status: "FAILED",
+      status: 'FAILED',
       points: 0,
       feedback: errorMessage,
     },
-  });
+  })
 }
 
 export const EvaluateCodeFromAi = inngest.createFunction(
   {
-    id: "on-code-submit",
+    id: 'on-code-submit',
     retries: 4,
-    name: "code-evaluator",
+    name: 'code-evaluator',
   },
-  { event: "submit/evaluate" },
+  { event: 'submit/evaluate' },
   async ({ event, step }) => {
-    const submission: SubmissionPayload = event.data;
+    const submission: SubmissionPayload = event.data
 
     try {
-        
       // Run evaluation via AI agent
 
-      const evaluationResult = await step.run(
-        "evaluate-code",
-        async () => {
-          return await GemniResponse(submission);
-        }
-      );
-      
+      const evaluationResult = await step.run('evaluate-code', async () => {
+        return await GemniResponse(submission)
+      })
+
       if (!evaluationResult) {
-        throw new Error("Evaluation returned null result");
+        throw new Error('Evaluation returned null result')
       }
-      
-      const evaluation: EvaluationResultPayload = evaluationResult;
+
+      const evaluation: EvaluationResultPayload = evaluationResult
 
       // Persist result to DB
-      await step.run("persist-result", async () => {
-        await saveEvaluationToDB(submission.submissionId, evaluation);
-      });
+      await step.run('persist-result', async () => {
+        await saveEvaluationToDB(submission.submissionId, evaluation)
+      })
 
       return {
-        status: "success",
+        status: 'success',
         submissionId: submission.submissionId,
         score: evaluation.score,
-      };
+      }
     } catch (error: any) {
-      console.error("Evaluation failed:", error);
+      console.error('Evaluation failed:', error)
 
-      await step.run("persist-failure", async () => {
+      await step.run('persist-failure', async () => {
         await markFailure(
           submission.submissionId,
-          "Evaluation failed: " + error.message
-        );
-      });
+          'Evaluation failed: ' + error.message
+        )
+      })
 
       return {
-        status: "failed",
+        status: 'failed',
         submissionId: submission.submissionId,
         error: error.message,
-      };
+      }
     }
   }
-);
-
-
+)

@@ -1,118 +1,116 @@
-import { Router } from "express";
-import prisma, { Role } from "@repo/db";
-import { challengeSchema, idParamSchema, SigninSchema, userSchema } from "@repo/zodtypes";
-import { TOTP } from "totp-generator";
-import base32 from "hi-base32";
-import { sendOtpEmail } from "../utils/email";
-import { OtpLimit } from "../middleware/otp-rate-limitter";
-import jwt from "jsonwebtoken";
-import { extractNotionDoc } from "../utils/notion";
+import { Router } from 'express'
+import prisma, { Role } from '@repo/db'
+import {
+  challengeSchema,
+  idParamSchema,
+  SigninSchema,
+  userSchema,
+} from '@repo/zodtypes'
+import { TOTP } from 'totp-generator'
+import base32 from 'hi-base32'
+import { sendOtpEmail } from '../utils/email'
+import { OtpLimit } from '../middleware/otp-rate-limitter'
+import jwt from 'jsonwebtoken'
+import { extractNotionDoc } from '../utils/notion'
 
+const router = Router()
+const otpCache = new Map<string, string>()
 
-
-
-const router = Router();
-const otpCache = new Map<string, string>();
-
-
-router.post("/signup", async (req, res) => {
+router.post('/signup', async (req, res) => {
   try {
-    const { success, data } = userSchema.safeParse(req.body);
+    const { success, data } = userSchema.safeParse(req.body)
 
     if (!success) {
-      res.status(400).json({ error: "Invalid request" });
-      return;
+      res.status(400).json({ error: 'Invalid request' })
+      return
     }
 
-    const { email } = data;
+    const { email } = data
 
-    let user = await prisma.user.findUnique({ where: { email } });
+    let user = await prisma.user.findUnique({ where: { email } })
 
     if (!user) {
       user = await prisma.user.create({
         data: {
           email,
           role: Role.Admin,
-        }
-      });
+        },
+      })
     }
 
+    const { otp } = TOTP.generate(
+      base32.encode(email + process.env.JWT_SECRET!)
+    )
 
-    const { otp } = TOTP.generate(base32.encode(email + process.env.JWT_SECRET!));
+    otpCache.set(email, otp)
 
-    otpCache.set(email, otp);
+    console.log(`OTP for ${email}: ${otp}`)
 
-    console.log(`OTP for ${email}: ${otp}`);
-
-
-    sendOtpEmail(email, parseInt(otp, 10));
-
+    sendOtpEmail(email, parseInt(otp, 10))
 
     res.status(200).json({
-      message: "OTP sent to your email",
-    });
-
+      message: 'OTP sent to your email',
+    })
   } catch (error) {
     res.status(500).json({
-      error: error instanceof Error ? error.message : "Unknown error during signup",
-    });
+      error:
+        error instanceof Error ? error.message : 'Unknown error during signup',
+    })
   }
 })
 
-
-router.post("/signin", OtpLimit, async (req, res) => {
+router.post('/signin', OtpLimit, async (req, res) => {
   try {
-    const { success, data, error } = SigninSchema.safeParse(req.body);
+    const { success, data, error } = SigninSchema.safeParse(req.body)
     if (!success) {
-      res.status(400).json({ error: error.message });
-      return;
+      res.status(400).json({ error: error.message })
+      return
     }
-    const { email, otp } = data;
+    const { email, otp } = data
 
-    const storedOtp = otpCache.get(email);
+    const storedOtp = otpCache.get(email)
 
-    const cachedOtp = storedOtp ? parseInt(storedOtp, 10) : undefined;
+    const cachedOtp = storedOtp ? parseInt(storedOtp, 10) : undefined
 
     if (!cachedOtp || cachedOtp !== otp) {
-      res.status(400).json({ error: "Invalid or expired OTP" });
-      return;
+      res.status(400).json({ error: 'Invalid or expired OTP' })
+      return
     }
 
-    otpCache.delete(email);
+    otpCache.delete(email)
 
     const token = jwt.sign(
       { email, role: Role.Admin },
-      process.env.ADMIN_JWT_SECRET || "supersecret",
-      { expiresIn: "7d" }
-    );
+      process.env.ADMIN_JWT_SECRET || 'supersecret',
+      { expiresIn: '7d' }
+    )
 
     res.status(200).json({
-      message: "Authentication successful",
+      message: 'Authentication successful',
       token,
-    });
-
+    })
   } catch (error) {
     res.status(500).json({
-      error: error instanceof Error ? error.message : "Unknown error during signin",
-    });
+      error:
+        error instanceof Error ? error.message : 'Unknown error during signin',
+    })
   }
-});
+})
 
-
-
-router.post("/add-problem", async (req, res) => {
+router.post('/add-problem', async (req, res) => {
   try {
-    const { success, data, error } = challengeSchema.safeParse(req.body);
+    const { success, data, error } = challengeSchema.safeParse(req.body)
 
     if (!success) {
-      res.status(400).json({ errors: error.issues });
-      return;
+      res.status(400).json({ errors: error.issues })
+      return
     }
 
-    const { title, notionDocId, maxPoints, difficulty, contentMd } = data;
+    const { title, notionDocId, maxPoints, difficulty, contentMd } = data
 
-    const notionDoc = await extractNotionDoc(notionDocId);
-    const notionContent = typeof notionDoc === "string" ? notionDoc : notionDoc.toString();
+    const notionDoc = await extractNotionDoc(notionDocId)
+    const notionContent =
+      typeof notionDoc === 'string' ? notionDoc : notionDoc.toString()
 
     const newChallenge = await prisma.challenge.create({
       data: {
@@ -121,55 +119,54 @@ router.post("/add-problem", async (req, res) => {
         maxPoints,
         difficulty,
         contentMd: contentMd ?? notionContent,
-        lastSyncedAt: new Date()
-      }
-    });
+        lastSyncedAt: new Date(),
+      },
+    })
 
     res.status(201).json({
-      message: "Problem added successfully",
+      message: 'Problem added successfully',
       challenge: newChallenge,
-    });
-
+    })
   } catch (err) {
-    console.error("Error adding problem:", err);
+    console.error('Error adding problem:', err)
 
     res.status(500).json({
-      error: err instanceof Error ? err.message : "Unknown error while adding problem",
-    });
+      error:
+        err instanceof Error
+          ? err.message
+          : 'Unknown error while adding problem',
+    })
   }
-});
+})
 
-
-
-
-router.patch("/challenges/:id/sync", async (req, res) => {
+router.patch('/challenges/:id/sync', async (req, res) => {
   try {
-
-    const parseResult = idParamSchema.safeParse(req.params);
+    const parseResult = idParamSchema.safeParse(req.params)
     if (!parseResult.success) {
-      res.status(400).json({ error: parseResult.error.issues });
-      return;
+      res.status(400).json({ error: parseResult.error.issues })
+      return
     }
 
-    const { id: challengeId } = parseResult.data;
+    const { id: challengeId } = parseResult.data
 
     const challenge = await prisma.challenge.findUnique({
       where: { id: challengeId },
-    });
+    })
 
     if (!challenge) {
-      res.status(404).json({ error: "Challenge not found" });
-      return;
+      res.status(404).json({ error: 'Challenge not found' })
+      return
     }
-    const notionDocId = challenge.notionDocId;
+    const notionDocId = challenge.notionDocId
 
     if (!notionDocId) {
-      res.status(400).json({ error: "No Notion page linked to this challenge" });
-      return;
+      res.status(400).json({ error: 'No Notion page linked to this challenge' })
+      return
     }
 
-    const notionDoc = await extractNotionDoc(notionDocId);
-    const notionContent = typeof notionDoc === "string" ? notionDoc : notionDoc.toString();
+    const notionDoc = await extractNotionDoc(notionDocId)
+    const notionContent =
+      typeof notionDoc === 'string' ? notionDoc : notionDoc.toString()
 
     await prisma.challenge.update({
       where: { id: challengeId },
@@ -177,54 +174,51 @@ router.patch("/challenges/:id/sync", async (req, res) => {
         contentMd: notionContent,
         lastSyncedAt: new Date(),
       },
-    });
+    })
 
-    res.status(200).json({ message: "Challenge synced successfully" });
+    res.status(200).json({ message: 'Challenge synced successfully' })
   } catch (error) {
     res.status(500).json({
       error:
         error instanceof Error
           ? error.message
-          : "Unknown error while syncing challenge",
-    });
+          : 'Unknown error while syncing challenge',
+    })
   }
-});
+})
 
-
-router.delete("/challenges/:id", async (req, res) => {
+router.delete('/challenges/:id', async (req, res) => {
   try {
-    const parseResult = idParamSchema.safeParse(req.params);
+    const parseResult = idParamSchema.safeParse(req.params)
     if (!parseResult.success) {
-      res.status(400).json({ error: parseResult.error.issues });
-      return;
+      res.status(400).json({ error: parseResult.error.issues })
+      return
     }
 
-    const { id: challengeId } = parseResult.data;
+    const { id: challengeId } = parseResult.data
 
     const challenge = await prisma.challenge.findUnique({
       where: { id: challengeId },
-    });
+    })
 
     if (!challenge) {
-      res.status(404).json({ error: "Challenge not found" });
-      return;
+      res.status(404).json({ error: 'Challenge not found' })
+      return
     }
 
     await prisma.challenge.delete({
       where: { id: challengeId },
-    });
+    })
 
-    res.status(200).json({ message: "Challenge deleted successfully" });
-    
+    res.status(200).json({ message: 'Challenge deleted successfully' })
   } catch (error) {
     res.status(500).json({
       error:
         error instanceof Error
           ? error.message
-          : "Unknown error while deleting challenge",
-    });
+          : 'Unknown error while deleting challenge',
+    })
   }
-});
+})
 
-
-export default router;
+export default router

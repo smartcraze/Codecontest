@@ -1,15 +1,15 @@
-"use client"
+'use client'
 
-import * as React from "react"
+import * as React from 'react'
 
 import {
   InputOTP,
   InputOTPGroup,
   InputOTPSlot,
-} from "@/components/ui/input-otp"
+} from '@/components/ui/input-otp'
 
 export function InputOTPControlled() {
-  const [value, setValue] = React.useState("")
+  const [value, setValue] = React.useState('')
 
   return (
     <div className="space-y-2">
@@ -28,7 +28,7 @@ export function InputOTPControlled() {
         </InputOTPGroup>
       </InputOTP>
       <div className="text-center text-sm">
-        {value === "" ? (
+        {value === '' ? (
           <>Enter your one-time password.</>
         ) : (
           <>You entered: {value}</>

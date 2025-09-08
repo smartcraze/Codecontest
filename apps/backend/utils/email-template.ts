@@ -1,4 +1,8 @@
-export function otpEmailHTML(otp: string, email: string, validitySeconds = 300) {
+export function otpEmailHTML(
+  otp: string,
+  email: string,
+  validitySeconds = 300
+) {
   return `
   <html>
     <body style="font-family: Arial, sans-serif; background:#f9fafb; padding:20px;">
@@ -20,11 +24,15 @@ export function otpEmailHTML(otp: string, email: string, validitySeconds = 300) 
       </div>
     </body>
   </html>
-  `;
+  `
 }
 
 function escapeHTML(s: string) {
-  return s.replace(/[&<>"']/g, (c) =>
-    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!)
-  );
+  return s.replace(
+    /[&<>"']/g,
+    (c) =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[
+        c
+      ]!
+  )
 }
