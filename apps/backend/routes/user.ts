@@ -11,7 +11,7 @@ const router = Router()
 
 const otpCache = new Map<string, string>()
 
-router.post('/signup', async (req, res) => {
+router.post('/intiate-signin', async (req, res) => {
   try {
     const { success, data, error } = userSchema.safeParse(req.body)
     if (!success) {
@@ -51,7 +51,7 @@ router.post('/signup', async (req, res) => {
   }
 })
 
-router.post('/signin', OtpLimit, async (req, res) => {
+router.post('/verify-otp', OtpLimit, async (req, res) => {
   try {
     const { success, data, error } = SigninSchema.safeParse(req.body)
     if (!success) {
