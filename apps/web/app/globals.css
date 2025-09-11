@@ -120,3 +120,69 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Enhanced neon effects and animations */
+/* .neon-glow {
+  text-shadow: 0 0 5px currentColor, 0 0 10px currentColor, 0 0 15px currentColor, 0 0 20px currentColor;
+} */
+
+.neon-border {
+  box-shadow:
+    0 0 5px currentColor,
+    0 0 10px currentColor,
+    inset 0 0 5px currentColor;
+}
+
+.hover-glow:hover {
+  box-shadow:
+    0 0 10px currentColor,
+    0 0 20px currentColor,
+    0 0 30px currentColor,
+    0 0 40px currentColor;
+  transition: box-shadow 0.3s ease;
+}
+
+/* Added smooth animations */
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* Enhanced gradient text animation with better contrast fallback */
+@keyframes gradient-shift {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradient-shift 3s ease infinite;
+}
+
+/* Ensure gradient text has proper fallback for accessibility */
+.bg-gradient-to-r.bg-clip-text.text-transparent {
+  /* Fallback for browsers that don't support bg-clip-text */
+  color: oklch(0.8 0.2 142);
+}
+
+@supports (background-clip: text) or (-webkit-background-clip: text) {
+  .bg-gradient-to-r.bg-clip-text.text-transparent {
+    color: transparent;
+    -webkit-background-clip: text;
+    background-clip: text;
+  }
+}

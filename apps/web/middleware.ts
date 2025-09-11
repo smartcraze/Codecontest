@@ -6,9 +6,9 @@ export function middleware(req: NextRequest) {
 
   const { pathname } = req.nextUrl
 
-  if (pathname === '/' && !token) {
-    return NextResponse.redirect(new URL('/signin', req.url))
-  }
+  // if (pathname === '/' && !token) {
+  //   return NextResponse.redirect(new URL('/signin', req.url))
+  // }
 
   if (pathname === '/signin' && token) {
     return NextResponse.redirect(new URL('/', req.url))
