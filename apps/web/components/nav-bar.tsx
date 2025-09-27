@@ -15,6 +15,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
+import { ModeToggle } from './mode-toggler'
 
 const Logo = (props: React.SVGAttributes<SVGElement>) => {
   return (
@@ -102,7 +103,7 @@ export interface Navbar01Props extends React.HTMLAttributes<HTMLElement> {
 
 const defaultNavigationLinks: Navbar01NavLink[] = [
   { href: '/', label: 'Home' },
-  { href: '#leaderboard', label: 'Leaderboard' },
+  { href: 'leaderboard', label: 'Leaderboard' },
   { href: '#contests', label: 'Contests' },
   { href: '#rules', label: 'Rules' },
 ]
@@ -226,6 +227,7 @@ export const Navbar01 = React.forwardRef<HTMLElement, Navbar01Props>(
 
           {/* Right */}
           <div className="flex items-center gap-3">
+            <ModeToggle />
             <Button
               asChild
               variant="ghost"
