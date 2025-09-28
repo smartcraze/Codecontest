@@ -106,6 +106,7 @@ const defaultNavigationLinks: Navbar01NavLink[] = [
   { href: '/contests', label: 'Contests' },
   { href: '/showcase', label: 'Showcase' },
   { href: '/demo', label: 'Demo' },
+  { href: '/leaderboard', label: 'Leaderboard' },
 ]
 export const Navbar01 = React.forwardRef<HTMLElement, Navbar01Props>(
   (

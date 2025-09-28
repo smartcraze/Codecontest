@@ -41,7 +41,7 @@ const StatsCard: React.FC<StatsCardProps> = ({
   }
 
   return (
-    <Card className="relative overflow-hidden">
+    <Card className="relative overflow-hidden hover:shadow-lg transition-all duration-300 hover:scale-105 border border-border/50 hover:border-primary/20">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div
@@ -54,8 +54,8 @@ const StatsCard: React.FC<StatsCardProps> = ({
               variant="outline"
               className={`${
                 trend.positive
-                  ? 'text-green-600 border-green-200 bg-green-50'
-                  : 'text-red-600 border-red-200 bg-red-50'
+                  ? 'text-green-600 border-green-200 bg-green-50 dark:text-green-400 dark:border-green-800 dark:bg-green-950/50'
+                  : 'text-red-600 border-red-200 bg-red-50 dark:text-red-400 dark:border-red-800 dark:bg-red-950/50'
               }`}
             >
               <TrendingUp
@@ -68,9 +68,11 @@ const StatsCard: React.FC<StatsCardProps> = ({
       </CardHeader>
       <CardContent>
         <div className="space-y-1">
-          <h3 className="text-2xl font-bold text-gray-900">{value}</h3>
-          <p className="text-sm font-medium text-gray-600">{title}</p>
-          {subtitle && <p className="text-xs text-gray-500">{subtitle}</p>}
+          <h3 className="text-2xl font-bold text-foreground">{value}</h3>
+          <p className="text-sm font-medium text-muted-foreground">{title}</p>
+          {subtitle && (
+            <p className="text-xs text-muted-foreground/70">{subtitle}</p>
+          )}
         </div>
       </CardContent>
     </Card>
@@ -115,11 +117,11 @@ const PlatformStats: React.FC = () => {
 
   return (
     <div className="w-full">
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">
+      <div className="mb-8 text-center">
+        <h2 className="text-3xl font-bold text-foreground mb-4">
           Platform Statistics
         </h2>
-        <p className="text-gray-600">
+        <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
           Real-time insights from our competitive programming community
         </p>
       </div>
