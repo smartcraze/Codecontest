@@ -1,7 +1,6 @@
 'use client'
 import ContestsGridSimple from '@/components/contests-grid-simple'
 import ContestCard from '@/components/contest-card'
-import { Navbar01 } from '@/components/nav-bar'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 

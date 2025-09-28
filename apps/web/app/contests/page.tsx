@@ -1,5 +1,4 @@
 import ContestsGridSimple from '@/components/contests-grid-simple'
-import { Navbar01 } from '@/components/nav-bar'
 
 export default function ContestsPage() {
   return (

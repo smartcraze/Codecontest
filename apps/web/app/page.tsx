@@ -2,7 +2,8 @@
 import ContestCard from '@/components/contest-card'
 import Herosection2 from '@/components/hero-part2'
 import HeroPage from '@/components/hero-section'
-import { Navbar01 } from '@/components/nav-bar'
+import Leaderboard from '@/components/leaderboard'
+import { PlatformStats } from '@/components/platform-stats'
 
 const sampleContest = {
   id: '1',
@@ -31,9 +32,11 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="space-y-8">
+      <div className="space-y-12">
         <HeroPage />
         <Herosection2 />
+
+        {/* Featured Contest */}
         <div className="flex justify-center px-4">
           <ContestCard
             contest={sampleContest}
@@ -41,6 +44,35 @@ export default function HomePage() {
             onViewDetails={handleViewDetails}
             onViewLeaderboard={handleViewLeaderboard}
           />
+        </div>
+
+        {/* Platform Statistics */}
+        <div className="max-w-6xl mx-auto px-4">
+          <PlatformStats />
+        </div>
+
+        {/* Leaderboard Section */}
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Global Leaderboard */}
+            <div>
+              <Leaderboard
+                title="Global Champions"
+                showGlobalLeaderboard={true}
+                maxEntries={8}
+              />
+            </div>
+
+            {/* Weekly Contest Leaderboard */}
+            <div>
+              <Leaderboard
+                title="Weekly Contest Leaders"
+                contestId="weekly-47"
+                showGlobalLeaderboard={false}
+                maxEntries={8}
+              />
+            </div>
+          </div>
         </div>
       </div>
     </div>
